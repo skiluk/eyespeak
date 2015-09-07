@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">EyeSpeak Glass</string>
+    <string name="title_activity_main">EyeSpeak</string>
+    <string name="hello_world">Hello world!</string>
+</resources>
