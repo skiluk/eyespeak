@@ -14,6 +14,9 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.speech.tts.SynthesisCallback;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -24,7 +27,9 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * A fragment representing a list of Items.
@@ -39,6 +44,8 @@ public class ConversationFragment extends ListFragment {
     private int mBindFlag;
     private Messenger mServiceMessenger;
     TextView speechTextView;
+    Intent speechService;
+    TextToSpeech tts;
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -88,9 +95,24 @@ public class ConversationFragment extends ListFragment {
         LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mMessageReceiver,
                 new IntentFilter("speech-recognition-finished"));
 
-        Intent service = new Intent(getActivity(), SpeechRecognitionService.class);
-        getActivity().startService(service);
+        speechService = new Intent(getActivity(), SpeechRecognitionService.class);
+        getActivity().startService(speechService);
         mBindFlag = Build.VERSION.SDK_INT < Build.VERSION_CODES.ICE_CREAM_SANDWICH ? 0 : Context.BIND_ABOVE_CLIENT;
+
+        tts = new TextToSpeech(getActivity(), new TextToSpeech.OnInitListener() {
+
+            @Override
+            public void onInit(int status) {
+                if (status == TextToSpeech.SUCCESS) {
+                    int result = tts.setLanguage(Locale.US);
+                    if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                        Log.e("error", "This language is not supported");
+                    }
+                } else
+                    Log.e("error", "TTS Initialization Failed!");
+            }
+        });
+        tts.setOnUtteranceProgressListener(new ttsUtteranceListener());
     }
 
     @Override
@@ -136,7 +158,12 @@ public class ConversationFragment extends ListFragment {
 
     @Override
     public void onDestroy () {
+        getActivity().stopService(speechService);
         LocalBroadcastManager.getInstance(getActivity()).unregisterReceiver(mMessageReceiver);
+        if(tts != null){
+            tts.stop();
+            tts.shutdown();
+        }
         super.onDestroy();
     }
 
@@ -151,10 +178,9 @@ public class ConversationFragment extends ListFragment {
         super.onListItemClick(l, v, position, id);
 
         if (null != mListener) {
-            // Notify the active callbacks interface (the activity, if the
-            // fragment is attached to one) that an item has been selected.
-            mListener.onFragmentInteraction(phrases.get(position));
+            ConvertTextToSpeech(phrases.get(position));
         }
+
     }
 
     /**
@@ -196,4 +222,42 @@ public class ConversationFragment extends ListFragment {
         }
     };
 
+
+    private void ConvertTextToSpeech(String text) {
+
+        if(text != null || !text.equals("")) {
+            HashMap<String, String> map = new HashMap<String, String>();
+            map.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "UniqueID");
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, map);
+        }
+
+    }
+
+    public class ttsUtteranceListener extends UtteranceProgressListener {
+
+        @Override
+        public void onDone(String utteranceId) {
+
+            try {
+                Message msg = Message.obtain(null, SpeechRecognitionService.MSG_RECOGNIZER_CANCEL);
+                mServiceMessenger.send(msg);
+                msg = Message.obtain(null, SpeechRecognitionService.MSG_RECOGNIZER_START_LISTENING);
+                mServiceMessenger.send(msg);
+            }
+            catch (RemoteException e)
+            {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public void onStart(String utteranceId) {
+
+        }
+
+        @Override
+        public void onError(String utteranceId) {
+
+        }
+    }
 }

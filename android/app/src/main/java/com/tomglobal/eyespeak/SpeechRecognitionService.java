@@ -148,7 +148,6 @@ public class SpeechRecognitionService extends Service {
         @Override
         public void onBeginningOfSpeech()
         {
-            // speech input will be processed, so there is no need for count down anymore
             if (mIsCountDownOn)
             {
                 mIsCountDownOn = false;
@@ -220,6 +219,7 @@ public class SpeechRecognitionService extends Service {
             intent.putExtra("message", input.get(0).toString());
             LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
 
+            /*
             mIsCountDownOn = false;
             Message message = Message.obtain(null, MSG_RECOGNIZER_CANCEL);
             try
@@ -232,6 +232,7 @@ public class SpeechRecognitionService extends Service {
             {
 
             }
+            */
         }
 
         @Override
