@@ -1,0 +1,16 @@
+<!DOCTYPE project>
+<project name="Deploy From Eclipse to Tomcat" basedir=".">
+	<property name="warfile" value="ROOT" />
+	<target name="unpack">
+		<unwar src="${warfile}.war" dest="${warfile}" />
+	</target>
+	<target name="create">
+		<war destfile="${warfile}.war" webxml="WebContent/WEB-INF/web.xml"
+			update="true">
+			<classes dir="build\classes" />
+			<fileset dir="WebContent">
+				<exclude name="WEB-INF/web.xml" />
+			</fileset>
+		</war>
+	</target>
+</project>

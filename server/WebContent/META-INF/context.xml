@@ -1,0 +1,17 @@
+<!DOCTYPE Context>
+<Context>
+	<Resource name="jdbc/bible-mysql" 
+        auth="Container" 
+        type="javax.sql.DataSource"
+		factory="org.apache.tomcat.jdbc.pool.DataSourceFactory"
+        testWhileIdle="true"
+        testOnBorrow="true"
+        validationQuery="SELECT 1"
+        jdbcInterceptors="org.apache.tomcat.jdbc.pool.interceptor.ConnectionState; org.apache.tomcat.jdbc.pool.interceptor.ResetAbandonedTimer"
+        maxAge="600000"
+        removeAbandoned="true"
+        username="tdcadmin"
+        password="Secur1ty"
+        driverClassName="com.mysql.jdbc.Driver"
+		url="jdbc:mysql://tecartadb.czrgu6ly1kp6.us-east-1.rds.amazonaws.com:3306/bible?useUnicode=true&amp;characterEncoding=UTF-8&amp;rewriteBatchedStatements=true&amp;cachePrepStmts=true" />
+</Context>
