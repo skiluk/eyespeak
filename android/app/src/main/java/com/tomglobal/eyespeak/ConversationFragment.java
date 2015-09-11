@@ -23,6 +23,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -46,6 +47,7 @@ public class ConversationFragment extends ListFragment {
     TextView speechTextView;
     Intent speechService;
     TextToSpeech tts;
+    ArrayAdapter adapter;
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -89,11 +91,15 @@ public class ConversationFragment extends ListFragment {
         phrases.add("I am doing good.");
         phrases.add("I am doing okay.");
 
-        setListAdapter(new ArrayAdapter<String>(getActivity(),
-                android.R.layout.simple_list_item_1, android.R.id.text1, phrases));
 
+        adapter = new ArrayAdapter<String>(getActivity(),
+                android.R.layout.simple_list_item_1, android.R.id.text1, phrases);
+        setListAdapter(adapter);
+
+                LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mMessageReceiver,
+                        new IntentFilter("speech-recognition-finished"));
         LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mMessageReceiver,
-                new IntentFilter("speech-recognition-finished"));
+                new IntentFilter("predictions-received"));
 
         speechService = new Intent(getActivity(), SpeechRecognitionService.class);
         getActivity().startService(speechService);
@@ -125,8 +131,16 @@ public class ConversationFragment extends ListFragment {
     private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            String message = intent.getStringExtra("message");
-            speechTextView.setText(message);
+            if (intent.getAction().equalsIgnoreCase("predictions-received")) {
+                phrases = intent.getStringArrayListExtra("predictions");
+                adapter = new ArrayAdapter<String>(getActivity(),
+                        android.R.layout.simple_list_item_1, android.R.id.text1, phrases);
+                setListAdapter(adapter);
+            }
+            else {
+                String message = intent.getStringExtra("message");
+                speechTextView.setText(message);
+            }
         }
     };
 
