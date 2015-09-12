@@ -27,7 +27,6 @@
             android:name=".DeviceListActivity"
             android:screenOrientation="landscape" >
         </activity>
-
         <service
             android:name=".SpeechRecognitionService"
             android:enabled="true"

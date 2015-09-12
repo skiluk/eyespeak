@@ -54,7 +54,10 @@ public class ApiManager extends AsyncTask<String, Void, Void> {
                 return null;
             }
             else {
-                for (int i=0; i<responses.length();i++) {
+                int l;
+                if (responses.length() > 4) l = 4;
+                else l = responses.length();
+                for (int i = 0; i < l;i++) {
                     predictions.add(responses.getString(i));
                 }
             }
@@ -75,6 +78,12 @@ public class ApiManager extends AsyncTask<String, Void, Void> {
 
     @Override
     protected void onPostExecute(Void result) {
+
+        JSONArray json = new JSONArray();
+        for (int i=0;i < predictions.size();i++) {
+            json.put(predictions.get(i));
+        }
+
 
         Intent intent = new Intent("predictions-received");
         intent.putExtra("predictions", predictions);

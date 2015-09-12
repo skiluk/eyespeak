@@ -111,7 +111,9 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onFragmentInteraction(String text) {
+        if (text.equalsIgnoreCase("Connected")) {
 
+        }
     }
 
 

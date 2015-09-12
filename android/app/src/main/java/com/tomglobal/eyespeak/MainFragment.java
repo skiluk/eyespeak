@@ -7,6 +7,9 @@ import android.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
+
+import com.getpebble.android.kit.PebbleKit;
 
 
 /**
@@ -58,6 +61,15 @@ public class MainFragment extends Fragment {
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
+
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        boolean isConnected = PebbleKit.isWatchConnected(getActivity());
+        Toast.makeText(getActivity(), "Pebble " + (isConnected ? "is" : "is not") + " connected!", Toast.LENGTH_LONG).show();
     }
 
     @Override

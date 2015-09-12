@@ -177,15 +177,17 @@ public class SpeechRecognitionService extends Service {
                 mNoSpeechCountDown.cancel();
             }
             mIsListening = false;
-            Message message = Message.obtain(null, MSG_RECOGNIZER_START_LISTENING);
+            /*
             try
             {
+                Message message = Message.obtain(null, MSG_RECOGNIZER_START_LISTENING);
                 mServerMessenger.send(message);
             }
             catch (RemoteException e)
             {
 
             }
+            */
         }
 
         @Override

@@ -1,5 +1,9 @@
 package com.tomglobal.eyespeak;
 
+import android.app.Activity;
+import android.app.Fragment;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -16,35 +20,68 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.GridView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
-public class ConversationFragment extends ListFragment {
+public class ConversationFragment extends Fragment implements GridView.OnItemClickListener {
 
     List<String> phrases;
     private int mBindFlag;
     private Messenger mServiceMessenger;
     TextView speechTextView;
+    EditText newPhraseEditText;
     Intent speechService;
     TextToSpeech tts;
     ArrayAdapter adapter;
     Button listenButton;
     public ProgressBar spinner;
+    GridView gridView;
+    android.support.design.widget.FloatingActionButton floatingActionButton;
 
-    private BluetoothChatService mBluetoothService = null;
+    // Intent request codes
+    private static final int REQUEST_CONNECT_DEVICE_SECURE = 1;
+    private static final int REQUEST_CONNECT_DEVICE_INSECURE = 2;
+    private static final int REQUEST_ENABLE_BT = 3;
+
+    /**
+     * Name of the connected device
+     */
+    private String mConnectedDeviceName = null;
+
+    /**
+     * String buffer for outgoing messages
+     */
+    private StringBuffer mOutStringBuffer;
+
+    /**
+     * Local Bluetooth adapter
+     */
+    private BluetoothAdapter mBluetoothAdapter = null;
+
+    /**
+     * Member object for the chat services
+     */
+    private BluetoothChatService mChatService = null;
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -84,12 +121,8 @@ public class ConversationFragment extends ListFragment {
         phrases.add("I am doing good.");
         phrases.add("I am doing okay.");
 
-        adapter = new ArrayAdapter<String>(getActivity(),
-                android.R.layout.simple_list_item_1, android.R.id.text1, phrases);
-        setListAdapter(adapter);
-
         LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mMessageReceiver,
-                        new IntentFilter("speech-recognition-finished"));
+                new IntentFilter("speech-recognition-finished"));
         LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mMessageReceiver,
                 new IntentFilter("predictions-received"));
 
@@ -111,11 +144,38 @@ public class ConversationFragment extends ListFragment {
             }
         });
         tts.setOnUtteranceProgressListener(new ttsUtteranceListener());
+
+        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+        // If the adapter is null, then Bluetooth is not supported
+        if (mBluetoothAdapter == null) {
+            Toast.makeText(getActivity(), "Bluetooth is not available", Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup viewGroup, Bundle bundle) {
         View view = inflater.inflate(R.layout.fragment_conversation, null);
+
+
+        gridView = (GridView) view.findViewById(R.id.gridView);
+
+        adapter = new ArrayAdapter<String>(getActivity(),
+                R.layout.phrase_grid_item, R.id.text1, phrases);
+        gridView.setAdapter(adapter);
+        gridView.setOnItemClickListener(this);
+        gridView.setOnTouchListener(new View.OnTouchListener() {
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_MOVE) {
+                    return true;
+                }
+                return false;
+            }
+
+        });
+
         speechTextView = (TextView) view.findViewById(R.id.predictionTextView);
         listenButton = (Button) view.findViewById(R.id.listenButton);
         spinner = (ProgressBar) view.findViewById(R.id.spinner);
@@ -129,6 +189,31 @@ public class ConversationFragment extends ListFragment {
                 }
             }
         });
+        newPhraseEditText = (EditText) view.findViewById(R.id.newPhraseEditText);
+        floatingActionButton = (android.support.design.widget.FloatingActionButton) view.findViewById(R.id.floatingButton);
+        floatingActionButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                if (newPhraseEditText.getVisibility() == View.GONE) {
+                    newPhraseEditText.setVisibility(View.VISIBLE);
+                    newPhraseEditText.requestFocus();
+                    InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.showSoftInput(newPhraseEditText, InputMethodManager.SHOW_IMPLICIT);
+                } else {
+
+                }
+
+            }
+        });
+        Button repeatBtn = (Button) view.findViewById(R.id.repeatButton);
+        repeatBtn.setOnClickListener(new View.OnClickListener() {
+                                         @Override
+                                         public void onClick(View v) {
+                                             ConvertTextToSpeech("Can you please repeat that for me.");
+                                         }
+                                     }
+        );
         return view;
     }
 
@@ -138,11 +223,11 @@ public class ConversationFragment extends ListFragment {
             if (intent.getAction().equalsIgnoreCase("predictions-received")) {
                 phrases = intent.getStringArrayListExtra("predictions");
                 String json = intent.getStringExtra("json");
+
                 adapter = new ArrayAdapter<String>(getActivity(),
-                        android.R.layout.simple_list_item_1, android.R.id.text1, phrases);
-                setListAdapter(adapter);
-                byte[] send = json.getBytes();
-                mBluetoothService.write(send);
+                        R.layout.phrase_grid_item, R.id.text1, phrases);
+                gridView.setAdapter(adapter);
+                sendMessage(json);
             }
             else {
                 spinner.setVisibility(View.INVISIBLE);
@@ -168,7 +253,13 @@ public class ConversationFragment extends ListFragment {
             throw new ClassCastException(getActivity().toString()
                     + " must implement OnFragmentInteractionListener");
         }
-        mBluetoothService = new BluetoothChatService(getActivity(), new Handler());
+        if (!mBluetoothAdapter.isEnabled()) {
+            Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
+            // Otherwise, setup the chat session
+        } else if (mChatService == null) {
+            setupChat();
+        }
     }
 
     @Override
@@ -188,8 +279,8 @@ public class ConversationFragment extends ListFragment {
             tts.stop();
             tts.shutdown();
         }
-        if (mBluetoothService != null) {
-            mBluetoothService.stop();
+        if (mChatService != null) {
+            mChatService.stop();
         }
         super.onDestroy();
     }
@@ -197,9 +288,11 @@ public class ConversationFragment extends ListFragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (mBluetoothService != null) {
-            if (mBluetoothService.getState() == BluetoothChatService.STATE_NONE) {
-                mBluetoothService.start();
+        if (mChatService != null) {
+            // Only if the state is STATE_NONE, do we know that we haven't started already
+            if (mChatService.getState() == BluetoothChatService.STATE_NONE) {
+                // Start the Bluetooth chat services
+                mChatService.start();
             }
         }
     }
@@ -211,12 +304,8 @@ public class ConversationFragment extends ListFragment {
     }
 
     @Override
-    public void onListItemClick(ListView l, View v, int position, long id) {
-        super.onListItemClick(l, v, position, id);
-
-        if (null != mListener) {
-            ConvertTextToSpeech(phrases.get(position));
-        }
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        ConvertTextToSpeech(phrases.get(position));
     }
 
     public interface OnFragmentInteractionListener {
@@ -229,10 +318,10 @@ public class ConversationFragment extends ListFragment {
         public void onServiceConnected(ComponentName name, IBinder service)
         {
             mServiceMessenger = new Messenger(service);
-            Message msg = new Message();
-            msg.what = SpeechRecognitionService.MSG_RECOGNIZER_START_LISTENING;
-
+            /*
             try {
+                Message msg = new Message();
+                msg.what = SpeechRecognitionService.MSG_RECOGNIZER_START_LISTENING;
                 mServiceMessenger.send(msg);
                 spinner.setVisibility(View.VISIBLE);
                 listenButton.setText("Stop Listening");
@@ -241,6 +330,7 @@ public class ConversationFragment extends ListFragment {
             {
                 e.printStackTrace();
             }
+            */
         }
 
         @Override
@@ -299,6 +389,111 @@ public class ConversationFragment extends ListFragment {
         {
             e.printStackTrace();
         }
+    }
+    private void setupChat() {
+
+        // Initialize the BluetoothChatService to perform bluetooth connections
+        mChatService = new BluetoothChatService(getActivity(), mHandler);
+
+        // Initialize the buffer for outgoing messages
+        mOutStringBuffer = new StringBuffer("");
+    }
+
+    private void sendMessage(String message) {
+        // Check that we're actually connected before trying anything
+        if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
+            Toast.makeText(getActivity(), R.string.not_connected, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Check that there's actually something to send
+        if (message.length() > 0) {
+            // Get the message bytes and tell the BluetoothChatService to write
+            byte[] send = message.getBytes();
+            mChatService.write(send);
+
+            // Reset out string buffer to zero and clear the edit text field
+            mOutStringBuffer.setLength(0);
+        }
+    }
+
+    private final Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            Activity activity = getActivity();
+            switch (msg.what) {
+                case Constants.MESSAGE_WRITE:
+                    byte[] writeBuf = (byte[]) msg.obj;
+                    // construct a string from the buffer
+                    String writeMessage = new String(writeBuf);
+                    break;
+                case Constants.MESSAGE_READ:
+                    byte[] readBuf = (byte[]) msg.obj;
+                    // construct a string from the valid bytes in the buffer
+                    String readMessage = new String(readBuf, 0, msg.arg1);
+                    ConvertTextToSpeech(readMessage);
+                    break;
+                case Constants.MESSAGE_DEVICE_NAME:
+                    // save the connected device's name
+                    mConnectedDeviceName = msg.getData().getString(Constants.DEVICE_NAME);
+                    if (null != activity) {
+                        Toast.makeText(activity, "Connected to "
+                                + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
+                    }
+                    break;
+                case Constants.MESSAGE_TOAST:
+                    if (null != activity) {
+                        Toast.makeText(activity, msg.getData().getString(Constants.TOAST),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                    break;
+            }
+        }
+    };
+
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case REQUEST_CONNECT_DEVICE_SECURE:
+                // When DeviceListActivity returns with a device to connect
+                if (resultCode == Activity.RESULT_OK) {
+                    connectDevice(data, true);
+                }
+                break;
+            case REQUEST_CONNECT_DEVICE_INSECURE:
+                // When DeviceListActivity returns with a device to connect
+                if (resultCode == Activity.RESULT_OK) {
+                    connectDevice(data, false);
+                }
+                break;
+            case REQUEST_ENABLE_BT:
+                // When the request to enable Bluetooth returns
+                if (resultCode == Activity.RESULT_OK) {
+                    // Bluetooth is now enabled, so set up a chat session
+                    setupChat();
+                } else {
+                    // User did not enable Bluetooth or an error occurred
+                    Toast.makeText(getActivity(), R.string.bt_not_enabled_leaving,
+                            Toast.LENGTH_SHORT).show();
+                    getActivity().finish();
+                }
+
+        }
+    }
+
+    /**
+     * Establish connection with other divice
+     *
+     * @param data   An {@link Intent} with {@link DeviceListActivity#EXTRA_DEVICE_ADDRESS} extra.
+     * @param secure Socket Security type - Secure (true) , Insecure (false)
+     */
+    private void connectDevice(Intent data, boolean secure) {
+        // Get the device MAC address
+        String address = data.getExtras()
+                .getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
+        // Get the BluetoothDevice object
+        BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
+        // Attempt to connect to the device
+        mChatService.connect(device, secure);
     }
 
     public class ttsUtteranceListener extends UtteranceProgressListener {
