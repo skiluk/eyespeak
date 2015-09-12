@@ -23,6 +23,8 @@ public class ApiManager extends AsyncTask<String, Void, Void> {
 
     private Context context;
     ArrayList<String> predictions = null;
+    JSONArray responses;
+    JSONObject apiResult;
 
     String HTTP_PRE = "http://";
     String HOST_API = "eyespeak.elasticbeanstalk.com/chat?version=1&text=";
@@ -46,9 +48,9 @@ public class ApiManager extends AsyncTask<String, Void, Void> {
             char[] chars = new char[1024];
             while ((read = reader.read(chars)) != -1)
                 buffer.append(chars, 0, read);
-                JSONObject result = new JSONObject(buffer.toString());
-                JSONArray responses = result.getJSONArray("responses");
-            if (result == null || responses.length() < 1) {
+                apiResult = new JSONObject(buffer.toString());
+                responses = apiResult.getJSONArray("responses");
+            if (apiResult == null || responses.length() < 1) {
                 return null;
             }
             else {
@@ -76,6 +78,7 @@ public class ApiManager extends AsyncTask<String, Void, Void> {
 
         Intent intent = new Intent("predictions-received");
         intent.putExtra("predictions", predictions);
+        intent.putExtra("json", apiResult.toString());
         LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
 
     }

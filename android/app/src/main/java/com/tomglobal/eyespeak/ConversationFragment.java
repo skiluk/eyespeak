@@ -1,6 +1,5 @@
 package com.tomglobal.eyespeak;
 
-import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -10,11 +9,11 @@ import android.content.ServiceConnection;
 import android.os.Build;
 import android.os.Bundle;
 import android.app.ListFragment;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
-import android.speech.tts.SynthesisCallback;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import android.support.v4.content.LocalBroadcastManager;
@@ -23,8 +22,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.ListAdapter;
+import android.widget.Button;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -32,13 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * A fragment representing a list of Items.
- * <p/>
- * <p/>
- * Activities containing this fragment MUST implement the {@link OnFragmentInteractionListener}
- * interface.
- */
 public class ConversationFragment extends ListFragment {
 
     List<String> phrases;
@@ -48,6 +41,10 @@ public class ConversationFragment extends ListFragment {
     Intent speechService;
     TextToSpeech tts;
     ArrayAdapter adapter;
+    Button listenButton;
+    public ProgressBar spinner;
+
+    private BluetoothChatService mBluetoothService = null;
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -70,10 +67,6 @@ public class ConversationFragment extends ListFragment {
         return fragment;
     }
 
-    /**
-     * Mandatory empty constructor for the fragment manager to instantiate the
-     * fragment (e.g. upon screen orientation changes).
-     */
     public ConversationFragment() {
     }
 
@@ -91,12 +84,11 @@ public class ConversationFragment extends ListFragment {
         phrases.add("I am doing good.");
         phrases.add("I am doing okay.");
 
-
         adapter = new ArrayAdapter<String>(getActivity(),
                 android.R.layout.simple_list_item_1, android.R.id.text1, phrases);
         setListAdapter(adapter);
 
-                LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mMessageReceiver,
+        LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mMessageReceiver,
                         new IntentFilter("speech-recognition-finished"));
         LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mMessageReceiver,
                 new IntentFilter("predictions-received"));
@@ -125,6 +117,18 @@ public class ConversationFragment extends ListFragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup viewGroup, Bundle bundle) {
         View view = inflater.inflate(R.layout.fragment_conversation, null);
         speechTextView = (TextView) view.findViewById(R.id.predictionTextView);
+        listenButton = (Button) view.findViewById(R.id.listenButton);
+        spinner = (ProgressBar) view.findViewById(R.id.spinner);
+        listenButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (spinner.getVisibility() == View.INVISIBLE) {
+                    startListening();
+                } else {
+                    stopListening();
+                }
+            }
+        });
         return view;
     }
 
@@ -133,11 +137,16 @@ public class ConversationFragment extends ListFragment {
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equalsIgnoreCase("predictions-received")) {
                 phrases = intent.getStringArrayListExtra("predictions");
+                String json = intent.getStringExtra("json");
                 adapter = new ArrayAdapter<String>(getActivity(),
                         android.R.layout.simple_list_item_1, android.R.id.text1, phrases);
                 setListAdapter(adapter);
+                byte[] send = json.getBytes();
+                mBluetoothService.write(send);
             }
             else {
+                spinner.setVisibility(View.INVISIBLE);
+                listenButton.setText("Listen");
                 String message = intent.getStringExtra("message");
                 speechTextView.setText(message);
             }
@@ -159,6 +168,7 @@ public class ConversationFragment extends ListFragment {
             throw new ClassCastException(getActivity().toString()
                     + " must implement OnFragmentInteractionListener");
         }
+        mBluetoothService = new BluetoothChatService(getActivity(), new Handler());
     }
 
     @Override
@@ -178,7 +188,20 @@ public class ConversationFragment extends ListFragment {
             tts.stop();
             tts.shutdown();
         }
+        if (mBluetoothService != null) {
+            mBluetoothService.stop();
+        }
         super.onDestroy();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (mBluetoothService != null) {
+            if (mBluetoothService.getState() == BluetoothChatService.STATE_NONE) {
+                mBluetoothService.start();
+            }
+        }
     }
 
     @Override
@@ -194,19 +217,8 @@ public class ConversationFragment extends ListFragment {
         if (null != mListener) {
             ConvertTextToSpeech(phrases.get(position));
         }
-
     }
 
-    /**
-     * This interface must be implemented by activities that contain this
-     * fragment to allow an interaction in this fragment to be communicated
-     * to the activity and potentially other fragments contained in that
-     * activity.
-     * <p/>
-     * See the Android Training lesson <a href=
-     * "http://developer.android.com/training/basics/fragments/communicating.html"
-     * >Communicating with Other Fragments</a> for more information.
-     */
     public interface OnFragmentInteractionListener {
         public void onFragmentInteraction(String id);
     }
@@ -222,6 +234,8 @@ public class ConversationFragment extends ListFragment {
 
             try {
                 mServiceMessenger.send(msg);
+                spinner.setVisibility(View.VISIBLE);
+                listenButton.setText("Stop Listening");
             }
             catch (RemoteException e)
             {
@@ -247,28 +261,57 @@ public class ConversationFragment extends ListFragment {
 
     }
 
+    private void startListening() {
+
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                spinner.setVisibility(View.VISIBLE);
+                listenButton.setText("Stop Listening");
+            }
+        });
+
+        try {
+            Message msg = Message.obtain(null, SpeechRecognitionService.MSG_RECOGNIZER_CANCEL);
+            mServiceMessenger.send(msg);
+            msg = Message.obtain(null, SpeechRecognitionService.MSG_RECOGNIZER_START_LISTENING);
+            mServiceMessenger.send(msg);
+        }
+        catch (RemoteException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    private void stopListening() {
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                spinner.setVisibility(View.INVISIBLE);
+                listenButton.setText("Listen");
+            }
+        });
+        try {
+            Message msg = Message.obtain(null, SpeechRecognitionService.MSG_RECOGNIZER_CANCEL);
+            mServiceMessenger.send(msg);
+        }
+        catch (RemoteException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
     public class ttsUtteranceListener extends UtteranceProgressListener {
 
         @Override
         public void onDone(String utteranceId) {
-
-            try {
-                Message msg = Message.obtain(null, SpeechRecognitionService.MSG_RECOGNIZER_CANCEL);
-                mServiceMessenger.send(msg);
-                msg = Message.obtain(null, SpeechRecognitionService.MSG_RECOGNIZER_START_LISTENING);
-                mServiceMessenger.send(msg);
-            }
-            catch (RemoteException e)
-            {
-                e.printStackTrace();
-            }
+            startListening();
         }
 
         @Override
         public void onStart(String utteranceId) {
 
         }
-
         @Override
         public void onError(String utteranceId) {
 
