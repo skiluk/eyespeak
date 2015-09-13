@@ -4,6 +4,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -148,7 +149,6 @@ public class SpeechRecognitionService extends Service {
         @Override
         public void onBeginningOfSpeech()
         {
-            // speech input will be processed, so there is no need for count down anymore
             if (mIsCountDownOn)
             {
                 mIsCountDownOn = false;
@@ -220,18 +220,7 @@ public class SpeechRecognitionService extends Service {
             intent.putExtra("message", input.get(0).toString());
             LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
 
-            mIsCountDownOn = false;
-            Message message = Message.obtain(null, MSG_RECOGNIZER_CANCEL);
-            try
-            {
-                mServerMessenger.send(message);
-                message = Message.obtain(null, MSG_RECOGNIZER_START_LISTENING);
-                mServerMessenger.send(message);
-            }
-            catch (RemoteException e)
-            {
-
-            }
+            new ApiManager(getApplicationContext()).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, input.get(0).toString());
         }
 
         @Override

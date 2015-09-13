@@ -8,22 +8,51 @@
         android:layout_height="fill_parent"
         android:orientation="vertical">
 
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:orientation="horizontal"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        >
+
         <TextView
             android:id="@+id/predictionTextView"
-            android:layout_width="fill_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="fill_parent"
+            android:layout_weight="10"
             android:text="How is it going?"
             android:padding="15dp"
             android:textSize="20sp"
             android:textColor="@android:color/black"
             />
 
+        <ProgressBar
+            android:id="@+id/spinner"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_gravity="center"
+            android:visibility="invisible"
+            />
+
+        </LinearLayout>
+
+
+            <Button
+                android:id="@+id/listenButton"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:text="Listen"
+                android:layout_gravity="center"
+                />
+
+
         <ListView
             android:id="@android:id/list"
             android:layout_width="fill_parent"
             android:layout_height="0dp"
-            android:layout_weight="3"
+            android:layout_weight="2"
 
             />
 
@@ -36,6 +65,7 @@
         android:layout_alignParentRight="true"
         android:layout_margin="10dp"
         android:clickable="true"
-        android:src="@drawable/ic_drawer" />
+        android:src="@drawable/ic_add_black_48dp"
+        />
 
 </RelativeLayout>

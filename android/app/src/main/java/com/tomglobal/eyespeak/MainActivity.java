@@ -1,39 +1,22 @@
 package com.tomglobal.eyespeak;
 
-import android.content.ComponentName;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.net.Uri;
-import android.os.Build;
-import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
-import android.speech.tts.TextToSpeech;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.ActionBar;
-import android.app.Fragment;
 import android.app.FragmentManager;
-import android.content.Context;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
 import android.support.v4.widget.DrawerLayout;
-
-import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationDrawerFragment.NavigationDrawerCallbacks, ConversationFragment.OnFragmentInteractionListener, MainFragment.OnFragmentInteractionListener {
 
-    TextToSpeech tts;
-
-
     private NavigationDrawerFragment mNavigationDrawerFragment;
     private CharSequence mTitle;
+    BluetoothChatFragment bluetoothChatFragment;
+    ConversationFragment conversationFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,46 +32,39 @@ public class MainActivity extends AppCompatActivity
                 R.id.navigation_drawer,
                 (DrawerLayout) findViewById(R.id.drawer_layout));
 
-
-        tts = new TextToSpeech(MainActivity.this, new TextToSpeech.OnInitListener() {
-
-            @Override
-            public void onInit(int status) {
-                if (status == TextToSpeech.SUCCESS) {
-                    int result = tts.setLanguage(Locale.US);
-                    if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                        Log.e("error", "This language is not supported");
-                    }
-                } else
-                    Log.e("error", "TTS Initialization Failed!");
-            }
-        });
-    }
-
-    private void ConvertTextToSpeech(String text) {
-
-        if(text != null || !text.equals("")) {
-            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null);
-        }
-
-    }
-
-    @Override
-    public void onDestroy() {
-        if(tts != null){
-            tts.stop();
-            tts.shutdown();
-        }
-        super.onDestroy();
     }
 
     @Override
     public void onNavigationDrawerItemSelected(int position) {
 
         FragmentManager fragmentManager = getFragmentManager();
-        if (position == 0) {
+        android.support.v4.app.FragmentManager supportFragmentManager = getSupportFragmentManager();
+        if (position == 1) {
+
+            if (bluetoothChatFragment != null) {
+                supportFragmentManager.beginTransaction().remove(bluetoothChatFragment).commit();
+            }
+            if (conversationFragment == null) {
+                conversationFragment = new ConversationFragment();
+            }
             fragmentManager.beginTransaction()
-                    .replace(R.id.container, new ConversationFragment())
+                    .replace(R.id.container, conversationFragment)
+                    .commit();
+        }
+        else if (position == 2) {
+            Intent myIntent = new Intent(MainActivity.this, DeviceListActivity.class);
+            startActivity(myIntent);
+        }
+        else if (position == 3) {
+
+            if (conversationFragment != null) {
+                fragmentManager.beginTransaction().remove(conversationFragment).commit();
+            }
+            if (bluetoothChatFragment == null) {
+                bluetoothChatFragment = new BluetoothChatFragment();
+            }
+            supportFragmentManager.beginTransaction()
+                    .replace(R.id.container, bluetoothChatFragment)
                     .commit();
         }
         else{
@@ -135,7 +111,8 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onFragmentInteraction(String text) {
-        ConvertTextToSpeech(text);
+
     }
+
 
 }
