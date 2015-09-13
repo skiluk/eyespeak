@@ -6,12 +6,22 @@
     <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:background="#30B4EEB4"
+        >
+
+        <EditText
+            android:id="@+id/newPhraseEditText"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:visibility="gone"
+            android:imeOptions="flagNoExtractUi"
+            />
 
     <LinearLayout
         android:layout_width="fill_parent"
         android:orientation="horizontal"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         android:layout_weight="1"
         >
 
@@ -21,9 +31,13 @@
             android:layout_height="fill_parent"
             android:layout_weight="10"
             android:text="How is it going?"
-            android:padding="15dp"
-            android:textSize="20sp"
+            android:padding="10dp"
+            android:textSize="18sp"
             android:textColor="@android:color/black"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:layout_gravity="center_vertical"
+            android:gravity="center_vertical"
             />
 
         <ProgressBar
@@ -34,35 +48,118 @@
             android:layout_weight="1"
             android:layout_gravity="center"
             android:visibility="invisible"
+            android:layout_margin="5dp"
             />
 
         </LinearLayout>
 
-
-            <Button
-                android:id="@+id/listenButton"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:text="Listen"
-                android:layout_gravity="center"
-                />
-
-
-        <ListView
-            android:id="@android:id/list"
+        <LinearLayout
             android:layout_width="fill_parent"
             android:layout_height="0dp"
-            android:layout_weight="2"
+            android:layout_weight="10"
+            android:orientation="horizontal"
+            >
 
+            <Button
+                android:id="@+id/button1"
+                android:layout_width="0dp"
+                android:layout_height="fill_parent"
+                android:layout_weight="1"
+                android:layout_margin="3dp"
+                android:textAllCaps="false"
+                android:textSize="18sp"
+                android:background="@drawable/item_border"
+                />
+
+            <Button
+                android:id="@+id/button2"
+                android:layout_width="0dp"
+                android:layout_height="fill_parent"
+                android:layout_weight="1"
+                android:layout_margin="3dp"
+                android:textAllCaps="false"
+                android:textSize="18sp"
+                android:background="@drawable/item_border"
+                />
+
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="0dp"
+            android:layout_weight="10"
+            android:orientation="horizontal"
+            >
+
+            <Button
+                android:id="@+id/button3"
+                android:layout_width="0dp"
+                android:layout_height="fill_parent"
+                android:layout_weight="1"
+                android:layout_margin="3dp"
+                android:textAllCaps="false"
+                android:textSize="18sp"
+                android:background="@drawable/item_border"
+                />
+
+            <Button
+                android:id="@+id/button4"
+                android:layout_width="0dp"
+                android:layout_height="fill_parent"
+                android:layout_weight="1"
+                android:layout_margin="3dp"
+                android:textAllCaps="false"
+                android:textSize="18sp"
+                android:background="@drawable/item_border"
+                />
+
+        </LinearLayout>
+
+        <!--
+        <GridView
+            android:id="@+id/gridView"
+            android:layout_width="fill_parent"
+            android:layout_height="0dp"
+            android:layout_weight="8"
+            android:numColumns="2"
+            android:layout_margin="3dp"
+            android:verticalSpacing="3dp"
+            android:horizontalSpacing="3dp"
+            android:stretchMode="columnWidth"
             />
+            -->
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+            android:id="@+id/listenButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+                android:layout_weight="1"
+            android:text="Listen"
+            android:layout_gravity="center"
+            />
+
+        <Button
+            android:id="@+id/repeatButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Please Repeat"
+            android:layout_gravity="center"
+            />
+        </LinearLayout>
 
     </LinearLayout>
 
     <android.support.design.widget.FloatingActionButton
+        android:id="@+id/floatingButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
+        android:layout_centerHorizontal="true"
         android:layout_margin="10dp"
         android:clickable="true"
         android:src="@drawable/ic_add_black_48dp"

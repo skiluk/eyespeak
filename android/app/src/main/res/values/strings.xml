@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">EyeSpeak</string>
+    <string name="app_name">QuickSpeak</string>
     
     <string name="title_section1">Log In</string>
     <string name="title_section2">Conversation Mode</string>

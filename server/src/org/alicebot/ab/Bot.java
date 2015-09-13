@@ -21,8 +21,14 @@ package org.alicebot.ab;
 */
 import org.alicebot.ab.utils.IOUtils;
 
+import com.eyespeak.ChatServlet;
+
 import java.io.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.*;
+
 
 
 /**
@@ -34,6 +40,8 @@ public class Bot {
     public final Graphmaster brain;
     public Graphmaster learnfGraph;
     public Graphmaster learnGraph;
+    String userId = "";
+    int lastUtteranceId = -1;
 
     // public Graphmaster unfinishedGraph;
     //  public final ArrayList<Category> categories;
@@ -79,32 +87,24 @@ public class Bot {
             System.out.println(maps_path);
         }
     }
-
-    /**
-     * Constructor (default action, default path, default bot name)
-     */
-    public Bot() {
-        this(MagicStrings.default_bot);
+    
+    public int getLastUtteranceId() {
+    	return lastUtteranceId;
     }
 
-    /**
-     * Constructor (default action, default path)
-     * @param name
-     */
-    public Bot(String name) {
-        this(name, MagicStrings.root_path);
+    public final Nodemapper match(String input, String that, String topic) {
+    	Nodemapper n = brain.match2(input, that, topic);
+    	
+    	if (n != null) {
+    		lastUtteranceId = Integer.parseInt(n.category.getFilename());
+    	}
+    	else {
+    		lastUtteranceId = -1;
+    	}
+    	
+    	return n;
     }
-
-    /**
-     * Constructor (default action)
-     *
-     * @param name
-     * @param path
-     */
-    public Bot(String name, String path) {
-        this(name, path, "auto");
-    }
-
+    
     /**
      * Constructor
      *
@@ -112,13 +112,13 @@ public class Bot {
      * @param path     root path of Program AB
      * @param action   Program AB action
      */
-    public Bot(String name, String path, String action) {
+    public Bot(String userId, String path, String action) {
+    	this.userId = userId;
         int cnt=0;
-        int elementCnt=0;
-        this.name = name;
-        setAllPaths(path, name);
+        
+        // folder to use for sets, config, etc...
+        setAllPaths(path, "alice2");
         this.brain = new Graphmaster(this);
-
         this.learnfGraph = new Graphmaster(this, "learnf");
         this.learnGraph = new Graphmaster(this, "learn");
   //      this.unfinishedGraph = new Graphmaster(this);
@@ -142,30 +142,12 @@ public class Bot {
         AIMLMap plural = new AIMLMap(MagicStrings.map_plural, this);
         mapMap.put(MagicStrings.map_plural, plural);
         //System.out.println("setMap = "+setMap);
-        Date aimlDate = new Date(new File(aiml_path).lastModified());
-        Date aimlIFDate = new Date(new File(aimlif_path).lastModified());
-        if (MagicBooleans.trace_mode) System.out.println("AIML modified "+aimlDate+" AIMLIF modified "+aimlIFDate);
         //readUnfinishedIFCategories();
         MagicStrings.pannous_api_key = Utilities.getPannousAPIKey(this);
         MagicStrings.pannous_login = Utilities.getPannousLogin(this);
-        if (action.equals("aiml2csv")) addCategoriesFromAIML();
-        else if (action.equals("csv2aiml")) addCategoriesFromAIMLIF();
-        else if (action.equals("chat-app")) {
-            if (MagicBooleans.trace_mode) System.out.println("Loading only AIMLIF files");
-            cnt = addCategoriesFromAIMLIF();
-        }
-        else if (aimlDate.after(aimlIFDate)) {
-            if (MagicBooleans.trace_mode) System.out.println("AIML modified after AIMLIF");
-            cnt = addCategoriesFromAIML();
-            writeAIMLIFFiles();
-        }
-        else {
-            addCategoriesFromAIMLIF();
-            if (brain.getCategories().size()==0) {
-                System.out.println("No AIMLIF Files found.  Looking for AIML");
-                cnt = addCategoriesFromAIML();
-            }
-        }
+        
+        cnt = addCategoriesFromDB();
+
         Category b = new Category(0, "PROGRAM VERSION", "*", "*", MagicStrings.program_name_version, "update.aiml");
         brain.addCategory(b);
         brain.nodeStats();
@@ -217,8 +199,39 @@ public class Bot {
     }
 
     /**
-     * Load all brain categories from AIML directory
+     * Load all brain categories from DB
      */
+    int addCategoriesFromDB() {
+    	int count = 0;
+
+    	try {
+    		Connection conn = ChatServlet.botDatabase.getConnection();
+
+    		PreparedStatement utterances = conn.prepareStatement("select utteranceId, utterance from utterances where userId = ?");
+    		utterances.setString(1, userId);
+
+    		ResultSet rs = utterances.executeQuery();
+    		while (rs.next()) {
+    			count++;
+  
+				Category c = new Category(0, rs.getString(2), "*", "*", null, "" + rs.getLong(1));
+				brain.addCategory(c);
+    		}
+
+    		rs.close();
+    		utterances.close();
+    		conn.close();
+    	}
+    	catch (Exception e) {
+    		System.out.println("Error reading db - " + e.getMessage());
+    	}
+		
+		return count;
+    }
+    
+    /**
+     * Load all brain categories from AIML directory
+     * /
     int addCategoriesFromAIML() {
         Timer timer = new Timer();
         timer.start();
@@ -254,14 +267,16 @@ public class Bot {
         if (MagicBooleans.trace_mode) System.out.println("Loaded " + cnt + " categories in " + timer.elapsedTimeSecs() + " sec");
         return cnt;
     }
-
+	*/
+    
     /**
      * load all brain categories from AIMLIF directory
-     */
+     * /
     public int addCategoriesFromAIMLIF() {
+        int cnt=0;
+
         Timer timer = new Timer();
         timer.start();
-        int cnt=0;
         try {
             // Directory path here
             String file;
@@ -292,8 +307,10 @@ public class Bot {
             ex.printStackTrace();
         }
         if (MagicBooleans.trace_mode) System.out.println("Loaded " + cnt + " categories in " + timer.elapsedTimeSecs() + " sec");
+        
         return cnt;
     }
+    */
 
 
     /**
@@ -662,7 +679,7 @@ public void shadowChecker () {
             String topic = node.category.getTopic().replace("*", "XXX").replace("_", "XXX").replace("^","").replace("#","");
             input = instantiateSets(input);
             System.out.println("shadowChecker: input="+input);
-            Nodemapper match = brain.match(input, that, topic);
+            Nodemapper match = match(input, that, topic);
             if (match != node) {
                 System.out.println("" + Graphmaster.inputThatTopic(input, that, topic));
                 System.out.println("MATCHED:     "+match.category.inputThatTopic());
