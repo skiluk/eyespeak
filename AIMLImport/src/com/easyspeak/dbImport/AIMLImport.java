@@ -76,16 +76,16 @@ public class AIMLImport {
 	    return sb.toString(); 
 	}
 	
-	public static void aiml(Connection dest, String botPath, int userId) throws Exception {
+	public static void aiml(Connection dest, String botPath, String userId) throws Exception {
 		File folder = new File(botPath, "aiml");
 		XPath xpath = XPathFactory.newInstance().newXPath();
 		
 		// remove old user items...
 		PreparedStatement clear = dest.prepareStatement("delete from utterances where userid = ?");
-		clear.setInt(1, userId);
+		clear.setString(1, userId);
 		clear.execute();
 		clear = dest.prepareStatement("delete from responses where userid = ?");
-		clear.setInt(1, userId);
+		clear.setString(1, userId);
 		clear.execute();
 
 		StringBuilder sb = null;
@@ -120,16 +120,18 @@ public class AIMLImport {
 					
 					if (firstStatement) {
 						sb = new StringBuilder();
-						sb.append("INSERT INTO utterances (userid, utterance) VALUES (");
+						sb.append("INSERT INTO utterances (userid, utterance, fileName) VALUES (");
 						firstStatement = false;
 					}
 					else {
 						sb.append(",(");
 					}
 					
-					sb.append(userId);
+					sb.append(cleanInsertString(userId));
 					sb.append(",");
 					sb.append(pattern);
+					sb.append(",");
+					sb.append(cleanInsertString(file.getName()));
 					sb.append(")");
 					
 					if ((++count % 30000 == 0) || sb.length() > 8000000) {
@@ -212,7 +214,7 @@ public class AIMLImport {
 							sb.append(",(");
 						}
 
-						sb.append(userId);
+						sb.append(cleanInsertString(userId));
 						sb.append(",");
 						sb.append(utteranceId);
 						sb.append(",");
@@ -241,17 +243,33 @@ public class AIMLImport {
 	}
 				
 	public static void main(String[] args) {
-		String botPath = "/Users/mike/Development/eyespeak/server/WebContent/bots/alice2";
-		int userId = 0;
+		// String botPath = "/Users/mike/Development/eyespeak/server/WebContent/bots/alice2";
+		// int userId = 0;
 
 		//String botPath = "/Users/mike/Downloads/program-ab-0.0.6.26/bots/eliza";
 		//int userId = 1;
+		
+		if (args.length != 2) {
+			System.out.println("Syntax error: AIMLImport userId pathToBot");
+			System.exit(-1);
+		}
+		
+		File botPath = new File(args[1]);
+		File aimlPath = new File(botPath, "aiml");
+		
+		if (!botPath.exists() || !aimlPath.exists()) {
+			System.out.println("Unable to find aiml folder in pathToBot!\n");
+			System.out.println("Syntax error: AIMLImport userId pathToBot");
+			System.exit(-1);
+		}
+		
+		String userId = args[0];
 		
 		try {			
 			Class.forName("com.mysql.jdbc.Driver");
 			Connection dest = DriverManager.getConnection("jdbc:mysql://tecartadb.czrgu6ly1kp6.us-east-1.rds.amazonaws.com:3306/eyespeak?useUnicode=true", "tdcadmin", "Secur1ty");
 
-			aiml(dest, botPath, userId);
+			aiml(dest, botPath.getPath(), userId);
 
 			dest.close();
 		}
