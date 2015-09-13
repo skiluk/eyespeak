@@ -10,6 +10,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.app.ListFragment;
@@ -17,6 +18,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
+import android.os.Parcelable;
 import android.os.RemoteException;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
@@ -43,7 +45,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
-public class ConversationFragment extends Fragment implements GridView.OnItemClickListener {
+public class ConversationFragment extends Fragment implements Button.OnClickListener {
 
     List<String> phrases;
     private int mBindFlag;
@@ -57,6 +59,10 @@ public class ConversationFragment extends Fragment implements GridView.OnItemCli
     public ProgressBar spinner;
     GridView gridView;
     android.support.design.widget.FloatingActionButton floatingActionButton;
+    Button button1;
+    Button button2;
+    Button button3;
+    Button button4;
 
     // Intent request codes
     private static final int REQUEST_CONNECT_DEVICE_SECURE = 1;
@@ -117,9 +123,10 @@ public class ConversationFragment extends Fragment implements GridView.OnItemCli
         }
 
         phrases = new ArrayList<String>();
-        phrases.add("I am doing great.");
-        phrases.add("I am doing good.");
-        phrases.add("I am doing okay.");
+        phrases.add("Hi, how are you?");
+        phrases.add("Excuse Me.");
+        phrases.add("Can you help me?");
+        phrases.add("What's up?");
 
         LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mMessageReceiver,
                 new IntentFilter("speech-recognition-finished"));
@@ -157,24 +164,21 @@ public class ConversationFragment extends Fragment implements GridView.OnItemCli
     public View onCreateView(LayoutInflater inflater, ViewGroup viewGroup, Bundle bundle) {
         View view = inflater.inflate(R.layout.fragment_conversation, null);
 
+        button1 = (Button) view.findViewById(R.id.button1);
+        button2 = (Button) view.findViewById(R.id.button2);
+        button3 = (Button) view.findViewById(R.id.button3);
+        button4 = (Button) view.findViewById(R.id.button4);
+        setupButtons(phrases);
 
-        gridView = (GridView) view.findViewById(R.id.gridView);
+        button1.setOnClickListener(this);
+        button2.setOnClickListener(this);
+        button3.setOnClickListener(this);
+        button4.setOnClickListener(this);
 
-        adapter = new ArrayAdapter<String>(getActivity(),
-                R.layout.phrase_grid_item, R.id.text1, phrases);
-        gridView.setAdapter(adapter);
-        gridView.setOnItemClickListener(this);
-        gridView.setOnTouchListener(new View.OnTouchListener() {
-
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_MOVE) {
-                    return true;
-                }
-                return false;
-            }
-
-        });
+        button1.setTag(0);
+        button2.setTag(1);
+        button3.setTag(2);
+        button4.setTag(3);
 
         speechTextView = (TextView) view.findViewById(R.id.predictionTextView);
         listenButton = (Button) view.findViewById(R.id.listenButton);
@@ -194,14 +198,17 @@ public class ConversationFragment extends Fragment implements GridView.OnItemCli
         floatingActionButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
                 if (newPhraseEditText.getVisibility() == View.GONE) {
                     newPhraseEditText.setVisibility(View.VISIBLE);
                     newPhraseEditText.requestFocus();
-                    InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.showSoftInput(newPhraseEditText, InputMethodManager.SHOW_IMPLICIT);
                 } else {
-
+                    String call = "&utteranceId=" + Singleton.predictions.get(0).utteranceId + "&text=" + newPhraseEditText.getText().toString();
+                    new ApiPost(getActivity().getApplicationContext()).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, call);
+                    ConvertTextToSpeech(newPhraseEditText.getText().toString());
+                    imm.hideSoftInputFromWindow(getActivity().getCurrentFocus().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+                    newPhraseEditText.setVisibility(View.GONE);
                 }
 
             }
@@ -217,16 +224,52 @@ public class ConversationFragment extends Fragment implements GridView.OnItemCli
         return view;
     }
 
+    private void setupButtons(List<String> phrases) {
+
+        button1.setVisibility(View.VISIBLE);
+        button2.setVisibility(View.VISIBLE);
+        button3.setVisibility(View.VISIBLE);
+        button4.setVisibility(View.VISIBLE);
+
+        if (phrases.size() == 1) {
+            button1.setText(phrases.get(0));
+            button2.setVisibility(View.GONE);
+            button3.setVisibility(View.GONE);
+            button4.setVisibility(View.GONE);
+        }
+        else if (phrases.size() == 2) {
+            button1.setText(phrases.get(0));
+            button2.setText(phrases.get(1));
+            button3.setVisibility(View.GONE);
+            button4.setVisibility(View.GONE);
+        }
+        else if (phrases.size() == 3) {
+            button1.setText(phrases.get(0));
+            button2.setText(phrases.get(1));
+            button3.setText(phrases.get(2));
+            button4.setVisibility(View.GONE);
+        }
+        else if (phrases.size() == 4) {
+            button1.setText(phrases.get(0));
+            button2.setText(phrases.get(1));
+            button3.setText(phrases.get(2));
+            button4.setText(phrases.get(3));
+        }
+
+    }
+
+
     private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equalsIgnoreCase("predictions-received")) {
-                phrases = intent.getStringArrayListExtra("predictions");
+                phrases.clear();
+                for (int i=0;i < Singleton.predictions.size();i++) {
+                    SpeakItem s = Singleton.predictions.get(i);
+                    phrases.add(s.Text);
+                }
                 String json = intent.getStringExtra("json");
-
-                adapter = new ArrayAdapter<String>(getActivity(),
-                        R.layout.phrase_grid_item, R.id.text1, phrases);
-                gridView.setAdapter(adapter);
+                setupButtons(phrases);
                 sendMessage(json);
             }
             else {
@@ -304,8 +347,16 @@ public class ConversationFragment extends Fragment implements GridView.OnItemCli
     }
 
     @Override
-    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        ConvertTextToSpeech(phrases.get(position));
+    public void onClick(View v) {
+
+        ConvertTextToSpeech(phrases.get((int) v.getTag()));
+        if (Singleton.predictions != null && Singleton.predictions.size() != 0) {
+            SpeakItem s = Singleton.predictions.get((int) v.getTag());
+            if (!s.Id.equalsIgnoreCase("-1")) {
+                String call = "&utteranceId=" + s.utteranceId + "&responseId=" + s.Id;
+                new ApiPost(getActivity().getApplicationContext()).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, call);
+            }
+        }
     }
 
     public interface OnFragmentInteractionListener {
@@ -431,6 +482,17 @@ public class ConversationFragment extends Fragment implements GridView.OnItemCli
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
+                    SpeakItem s = null;
+                    for (int i = 0;i < Singleton.predictions.size();i++) {
+                        SpeakItem si = Singleton.predictions.get(i);
+                        if (si.Text.equalsIgnoreCase(readMessage)) {
+                            s = si;
+                        }
+                    }
+                    String call = "&utteranceId=" + s.utteranceId + "&responseId=" + s.Id;
+                    if (!s.Id.equalsIgnoreCase("-1")) {
+                        new ApiPost(getActivity().getApplicationContext()).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, call);
+                    }
                     ConvertTextToSpeech(readMessage);
                     break;
                 case Constants.MESSAGE_DEVICE_NAME:

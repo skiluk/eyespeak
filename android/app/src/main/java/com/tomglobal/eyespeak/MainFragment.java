@@ -1,12 +1,16 @@
 package com.tomglobal.eyespeak;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.app.Fragment;
+import android.preference.PreferenceManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import com.getpebble.android.kit.PebbleKit;
@@ -29,6 +33,9 @@ public class MainFragment extends Fragment {
     // TODO: Rename and change types of parameters
     private String mParam1;
     private String mParam2;
+
+    EditText inputName;
+    SharedPreferences prefs;
 
     private OnFragmentInteractionListener mListener;
 
@@ -68,15 +75,27 @@ public class MainFragment extends Fragment {
     public void onResume() {
         super.onResume();
 
-        boolean isConnected = PebbleKit.isWatchConnected(getActivity());
-        Toast.makeText(getActivity(), "Pebble " + (isConnected ? "is" : "is not") + " connected!", Toast.LENGTH_LONG).show();
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_main, container, false);
+        View view = inflater.inflate(R.layout.fragment_main, container, false);
+        prefs = getActivity().getSharedPreferences("com.tomglobal.eyespeak", Context.MODE_PRIVATE);
+
+        inputName = (EditText) view.findViewById(R.id.input);
+        inputName.setText(prefs.getString("userId", ""));
+        Button selectBtn = (Button) view.findViewById(R.id.selectBtn);
+        selectBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putString("userId", inputName.getText().toString());
+                editor.commit();
+            }
+        });
+
+        return view;
     }
 
     // TODO: Rename method, update argument and hook method into UI event
