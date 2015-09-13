@@ -20,6 +20,9 @@ package org.alicebot.ab;
 */
 
 import java.io.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.HashSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -125,8 +128,44 @@ public class AIMLSet extends HashSet<String> {
 
     public int readAIMLSet (Bot bot) {
         int cnt=0;
-        if (MagicBooleans.trace_mode) System.out.println("Reading AIML Set "+bot.sets_path+"/"+setName+".txt");
+
         try{
+        	/*
+    		Connection c = bot.db.getConnection();
+    		PreparedStatement stmt = c.prepareStatement("select value from setsValue where categoryId = ?");
+    		stmt.setInt(1, categoryId);
+    		ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+            	cnt++;
+
+            	String strLine = rs.getString(1);
+            	
+                if (strLine.startsWith("external")) {
+                    String[] splitLine = strLine.split(":");
+                    if (splitLine.length >= 4) {
+                        host = splitLine[1];
+                        botid = splitLine[2];
+                        maxLength = Integer.parseInt(splitLine[3]);
+                        isExternal = true;
+                        System.out.println("Created external set at "+host+" "+botid);
+                    }
+                }
+                else {
+                    strLine = strLine.toUpperCase().trim();
+                    String [] splitLine = strLine.split(" ");
+                    int length = splitLine.length;
+                    if (length > maxLength) maxLength = length;
+                    //System.out.println("readAIMLSetFromInputStream "+strLine);
+                    add(strLine.trim());
+                }
+    		}
+            
+    		rs.close();
+    		stmt.close();
+    		c.close();
+    		*/
+        	
             // Open the file that is the first
             // command line parameter
             File file = new File(bot.sets_path+"/"+setName+".txt");

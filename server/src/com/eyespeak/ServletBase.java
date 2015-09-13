@@ -62,7 +62,7 @@ import com.eyespeak.model.User;
 
 public class ServletBase extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-	protected DataSource bibleDB;
+	protected DataSource eyespeakDB;
 	private SimpleDateFormat localFormat = null, gmtFormat = null;
 	private int defaultTimeZoneOffset = 0; 
 	private ExecutorService cacheService = null;
@@ -86,7 +86,7 @@ public class ServletBase extends HttpServlet {
 		
 		try {
 			Context initContext  = new InitialContext();
-			bibleDB = (DataSource)initContext.lookup("java:/comp/env/jdbc/bible-mysql");
+			eyespeakDB = (DataSource)initContext.lookup("java:/comp/env/jdbc/eyespeak-mysql");
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -188,7 +188,7 @@ public class ServletBase extends HttpServlet {
 	protected User getUser(String email) throws SQLException {
 		User u = null;
 		
-		Connection c = bibleDB.getConnection();
+		Connection c = eyespeakDB.getConnection();
 		PreparedStatement stmt = c.prepareStatement("select userId, active from users where email = ?");
 
 		stmt.setString(1, email);
@@ -210,7 +210,7 @@ public class ServletBase extends HttpServlet {
 		msg.code = ErrorUnauthorized;
 		msg.message = "Not Authenticated";
 
-		Connection c = bibleDB.getConnection();
+		Connection c = eyespeakDB.getConnection();
 		PreparedStatement stmt;
 		boolean verified = false;
 		int active = 0;

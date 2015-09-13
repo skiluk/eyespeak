@@ -253,7 +253,7 @@ public class Graphmaster {
      * @param topic              current topic
      * @return                   matching leaf node or null if no match is found
      */
-    public final Nodemapper match(String input, String that, String topic) {
+    public final Nodemapper match2(String input, String that, String topic) {
         Nodemapper n = null;
         try {
          String inputThatTopic = inputThatTopic(input, that, topic);
