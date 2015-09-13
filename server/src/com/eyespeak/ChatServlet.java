@@ -16,6 +16,7 @@ import javax.sql.DataSource;
 import org.alicebot.ab.Bot;
 import org.alicebot.ab.Category;
 import org.alicebot.ab.Chat;
+import org.alicebot.ab.MagicStrings;
 
 import com.eyespeak.model.ChatResponse;
 import com.eyespeak.model.Option;
@@ -91,8 +92,11 @@ public class ChatServlet extends ServletBase {
 	        	o.responseId = Integer.parseInt(m.group(1));
 	        	o.responseText = m.group(2);
 	        }
-	        else {
+	        else if (option != null && option.length() > 0) {
 	        	o.responseText = option;
+	        }
+	        else {
+	        	o.responseText = MagicStrings.default_bot_response;
 	        }
         	
         	chatResponse.responses.add(o);
