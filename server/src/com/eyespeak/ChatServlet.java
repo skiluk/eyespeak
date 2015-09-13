@@ -64,7 +64,11 @@ public class ChatServlet extends ServletBase {
 		}
 		
 		// get the bot...
-		Bot bot = bots.get(userId);
+		Bot bot = null;
+		
+		if (getParmInt(request, "reload") != 1) {
+			bot = bots.get(userId);
+		}
 		
 		if (bot == null) {
 			bot = new Bot(userId, getServletContext().getRealPath(File.separator), "auto");

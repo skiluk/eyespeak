@@ -98,6 +98,9 @@ public class Bot {
     	if (n != null) {
     		lastUtteranceId = Integer.parseInt(n.category.getFilename());
     	}
+    	else {
+    		lastUtteranceId = -1;
+    	}
     	
     	return n;
     }
