@@ -48,6 +48,7 @@ public class TestAB {
         }
     }
     public static void testBotChat () {
+    	/*
         Bot bot = new Bot("alice");
         System.out.println(bot.brain.upgradeCnt+" brain upgrades");
 
@@ -57,6 +58,7 @@ public class TestAB {
         String response = chatSession.multisentenceRespond(request);
         System.out.println("Human: "+request);
         System.out.println("Robot: "+response);
+        */
     }
 
     public static void runTests(Bot bot, boolean traceMode) {

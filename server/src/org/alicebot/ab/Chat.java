@@ -209,7 +209,8 @@ public class Chat {
      * @return
      */
     public String multisentenceRespond(String request) {
-
+    	bot.lastUtteranceId = -1;
+    	
         //MagicBooleans.trace("chat.multisentenceRespond(request: " + request + ")");
         String response="";
         matchTrace="";

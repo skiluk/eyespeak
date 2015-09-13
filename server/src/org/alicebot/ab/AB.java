@@ -261,7 +261,7 @@ public class AB {
                     for (int i = 0; i < sentences.length; i++) {
                         String sentence = sentences[i];
                         if (sentence.length() > 0) {
-                            Nodemapper match = patternGraph.match(sentence, "unknown", "unknown");
+                            Nodemapper match = patternGraph.match2(sentence, "unknown", "unknown");
 
                             if (match == null) {
                                 System.out.println(sentence+" null match");
@@ -298,7 +298,7 @@ public class AB {
         String logFile = logfile;
         MagicBooleans.trace_mode = false;
         MagicBooleans.enable_external_sets = false;
-        if (offer_alice_responses) alice = new Bot("alice");
+        // if (offer_alice_responses) alice = new Bot("alice");
         Timer timer = new Timer();
         bot.brain.nodeStats();
         if (bot.brain.getCategories().size() < MagicNumbers.brain_print_size) bot.brain.printgraph();

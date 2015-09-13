@@ -196,7 +196,7 @@ public class AIMLProcessor {
         sraiCount = srCnt;
         response = MagicStrings.default_bot_response;
          try {
-            Nodemapper leaf = chatSession.bot.brain.match(input, that, topic);
+            Nodemapper leaf = chatSession.bot.match(input, that, topic);
             if (leaf == null) {return(response);}
             ParseState ps = new ParseState(0, chatSession, input, that, topic, leaf);
             //chatSession.matchTrace += leaf.category.getTemplate()+"\n";
@@ -351,7 +351,7 @@ public class AIMLProcessor {
                 System.out.println(trace_count+". <srai>"+result+"</srai> from "+ps.leaf.category.inputThatTopic()+" topic="+topic+") ");
                 trace_count++;
             }
-            Nodemapper leaf = ps.chatSession.bot.brain.match(result, ps.that, topic);
+            Nodemapper leaf = ps.chatSession.bot.match(result, ps.that, topic);
             if (leaf == null) {return(response);}
             //System.out.println("Srai returned "+leaf.category.inputThatTopic()+":"+leaf.category.getTemplate());
             response = evalTemplate(leaf.category.getTemplate(), new ParseState(ps.depth+1, ps.chatSession, ps.input, ps.that, topic, leaf));

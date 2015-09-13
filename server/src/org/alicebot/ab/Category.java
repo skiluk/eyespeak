@@ -1,4 +1,8 @@
 package org.alicebot.ab;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.ArrayList;
 /* Program AB Reference AIML 2.0 implementation
         Copyright (C) 2013 ALICE A.I. Foundation
         Contact: info@alicebot.org
@@ -19,6 +23,10 @@ package org.alicebot.ab;
         Boston, MA  02110-1301, USA.
 */
 import java.util.Comparator;
+
+import javax.sql.DataSource;
+
+import com.eyespeak.ChatServlet;
 
 /**
  * structure representing an AIML category and operations on Category
@@ -96,9 +104,59 @@ public class Category {
      * @return      template
      */
     public String getTemplate () {
-        if (template==null) return "";
-        else
-            return template;
+    	DataSource db = ChatServlet.botDatabase;
+    	
+        if (db != null) {
+        	try {
+        		Connection conn = db.getConnection();
+        		PreparedStatement responsesStmt = conn.prepareStatement("select responseId, response from responses where utteranceId = ? order by numSelected desc, responseId");
+
+        		// get the responses by popularity then order inserted...
+        		responsesStmt.setInt(1, Integer.parseInt(filename));
+
+        		ResultSet rsResponses = responsesStmt.executeQuery();
+        		ArrayList<String> responses = new ArrayList<>();
+        		ArrayList<Long> responseIds = new ArrayList<>();
+
+        		while (rsResponses.next()) {
+        			// need to add id
+        			responseIds.add(rsResponses.getLong(1));
+        			responses.add(rsResponses.getString(2));
+        		}
+
+        		rsResponses.close();
+
+        		if (responses.size() > 1) {
+        			StringBuilder xmlResponse = new StringBuilder();
+
+        			xmlResponse.append("<random>");
+        			for (int i = 0; i < responses.size(); i++) {
+        				xmlResponse.append("<li>");
+        				xmlResponse.append(":");
+        				xmlResponse.append(responseIds.get(i));
+        				xmlResponse.append(":");
+        				xmlResponse.append(responses.get(i));
+        				xmlResponse.append("</li>");
+        			}
+        			xmlResponse.append("</random>");
+
+        			return xmlResponse.toString();
+        		}
+        		else if (responses.size() == 1) {
+        			return responses.get(0);
+        		}
+        	}
+        	catch (Exception e) {
+        		System.out.println("Error getting template " + e.getMessage());
+        	}
+        }
+        
+        if (template == null) {
+        	return "";
+        }
+        else {
+        	return template;
+        }
     }
     /**
      * get name of AIML file for this category
@@ -320,22 +378,28 @@ public class Category {
      */
 
     public Category (int activationCnt, String pattern, String that, String topic, String template, String filename){
-        if (MagicBooleans.fix_excel_csv)   {
-        pattern = Utilities.fixCSV(pattern);
-        that = Utilities.fixCSV(that);
-        topic = Utilities.fixCSV(topic);
-        template = Utilities.fixCSV(template);
-        filename = Utilities.fixCSV(filename);
-        }
-        this.pattern = pattern.trim().toUpperCase();
-        this.that = that.trim().toUpperCase();
-        this.topic = topic.trim().toUpperCase();
-        this.template = template.replace("& ", " and "); // XML parser treats & badly
-        this.filename = filename;
-        this.activationCnt = activationCnt;
-        matches = null;
-        this.categoryNumber = categoryCnt++;
-        //System.out.println("Creating "+categoryNumber+" "+inputThatTopic());
+    	if (MagicBooleans.fix_excel_csv)   {
+    		pattern = Utilities.fixCSV(pattern);
+    		that = Utilities.fixCSV(that);
+    		topic = Utilities.fixCSV(topic);
+    		if (template != null) {
+    			template = Utilities.fixCSV(template);
+    		}
+    		filename = Utilities.fixCSV(filename);
+    	}
+    	this.pattern = pattern.trim().toUpperCase();
+    	this.that = that.trim().toUpperCase();
+    	this.topic = topic.trim().toUpperCase();
+
+    	if (this.template != null) {
+    		this.template = template.replace("& ", " and "); // XML parser treats & badly
+    	}
+
+    	this.filename = filename;
+    	this.activationCnt = activationCnt;
+    	matches = null;
+    	this.categoryNumber = categoryCnt++;
+    	//System.out.println("Creating "+categoryNumber+" "+inputThatTopic());
     }
 
     /**
