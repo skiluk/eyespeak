@@ -4,7 +4,7 @@
 #
 #
 appName="EyeSpeak"
-envId="e-mxcktjtdzp"
+envId="e-wv2g8fj4qv"
 
 # generic push code goes here...
 export AWS_CREDENTIAL_FILE=~/.elasticbeanstalk/aws_credential_file
