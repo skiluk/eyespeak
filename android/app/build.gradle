@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "com.tomglobal.eyespeak"
-        minSdkVersion 19
+        minSdkVersion 17
         targetSdkVersion 23
         versionCode 1
         versionName "1.0"
@@ -24,4 +24,10 @@ dependencies {
     compile 'com.android.support:appcompat-v7:23.0.0'
 	compile 'com.android.support:design:22.2.0'
 	compile files('libs/Parse-1.5.1.jar')
+	compile 'com.getpebble:pebblekit:3.0.0'
+}
+
+repositories {
+  mavenCentral()
+  maven { url "https://oss.sonatype.org/content/groups/public/" }
 }

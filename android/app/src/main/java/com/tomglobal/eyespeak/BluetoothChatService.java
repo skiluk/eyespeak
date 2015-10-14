@@ -330,6 +330,11 @@ public class BluetoothChatService {
 
                 // If a connection was accepted
                 if (socket != null) {
+                    try {
+                        mmServerSocket.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     synchronized (BluetoothChatService.this) {
                         switch (mState) {
                             case STATE_LISTEN:
